@@ -1,7 +1,7 @@
 import sys
 from lexer import Lexer
 from token_ import Token, TokenKind
-from node_ import BinaryNode, CompoundNode, IfNode, Node, UnaryNode
+from node import BinaryNode, CompoundNode, IfNode, Node, UnaryNode
 
 class Parser:
 	lexer: Lexer
@@ -56,7 +56,7 @@ class Parser:
 		if self.current.kind == TokenKind.If:
 			self.next()
 
-			cmp = self.logic()
+			cmp = self.binary()
 			if not cmp: return
 
 			body = self.compound()
@@ -68,7 +68,7 @@ class Parser:
 			while self.current.kind == TokenKind.Elsif:
 				self.next()
 
-				cmp = self.logic()
+				cmp = self.binary()
 				if not cmp: return
 
 				body = self.compound()
@@ -87,56 +87,34 @@ class Parser:
 		elif self.current.kind in (TokenKind.Elsif, TokenKind.Else):
 			print(f'Unexpected {self.current.kind} at {self.current.start}', file=sys.stderr)
 		else:
-			return self.logic()
+			return self.binary()
 
-	def logic(self) -> Node|None:
-		lhs = self.cmp()
-		if not lhs: return
-
-		while self.current and self.current.kind in (TokenKind.LogicAnd, TokenKind.LogicOr):
-			op = self.current
-			self.next()
-			rhs = self.cmp()
-			if not rhs: return
-			lhs = BinaryNode(lhs, op, rhs)
-
-		return lhs
-
-	def cmp(self) -> Node|None:
-		lhs = self.add()
-		if not lhs: return
-
-		while self.current and self.current.kind in (TokenKind.Equal, TokenKind.Diff, TokenKind.Less, TokenKind.LessEqual, TokenKind.Greater, TokenKind.GreaterEquals):
-			op = self.current
-			self.next()
-			rhs = self.add()
-			if not rhs: return
-			lhs = BinaryNode(lhs, op, rhs)
-
-		return lhs
-
-	def add(self) -> Node|None:
-		lhs = self.multiply()
-		if not lhs: return
-
-		while self.current and self.current.kind in (TokenKind.Plus, TokenKind.Minus):
-			op = self.current
-			self.next()
-			rhs = self.multiply()
-			if not rhs: return
-			lhs = BinaryNode(lhs, op, rhs)
-
-		return lhs
-
-	def multiply(self) -> Node|None:
+	def binary(self, parentPrecedence = 0) -> Node|None:
 		lhs = self.unary()
 		if not lhs: return
 
-		while self.current and self.current.kind in (TokenKind.Multiply, TokenKind.Divide):
+		def get_precedence(kind: TokenKind) -> int:
+			match kind:
+				case TokenKind.LogicAnd | TokenKind.LogicOr:
+					return 3
+				case TokenKind.Equal | TokenKind.Diff | TokenKind.Less | TokenKind.LessEqual | TokenKind.Greater | TokenKind.GreaterEquals:
+					return 2
+				case TokenKind.Multiply | TokenKind.Divide | TokenKind.Plus | TokenKind.Minus:
+					return 1
+				case _:
+					return 0
+
+		while self.current:
+			precedence = get_precedence(self.current.kind)
+			if precedence == 0 or precedence <= parentPrecedence:
+				break
+
 			op = self.current
 			self.next()
-			rhs = self.unary()
+
+			rhs = self.binary(precedence)
 			if not rhs: return
+
 			lhs = BinaryNode(lhs, op, rhs)
 
 		return lhs
@@ -164,7 +142,7 @@ class Parser:
 
 			case TokenKind.OpenParen:
 				self.next()
-				expr = self.logic()
+				expr = self.binary()
 
 				if self.current.kind != TokenKind.CloseParen:
 					print(f'Expected closing parenthesis at {self.current.start}', file=sys.stderr)
