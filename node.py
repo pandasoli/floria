@@ -20,7 +20,7 @@ class BinaryNode:
 	right: Node
 
 	def __repr__(self):
-		return f'{self.left} {self.op} {self.right}'
+		return f'({self.left} {self.op} {self.right})'
 
 @dataclass
 class UnaryNode:

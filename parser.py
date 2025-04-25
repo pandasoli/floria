@@ -96,10 +96,12 @@ class Parser:
 		def get_precedence(kind: TokenKind) -> int:
 			match kind:
 				case TokenKind.LogicAnd | TokenKind.LogicOr:
-					return 3
+					return 4
 				case TokenKind.Equal | TokenKind.Diff | TokenKind.Less | TokenKind.LessEqual | TokenKind.Greater | TokenKind.GreaterEquals:
+					return 3
+				case TokenKind.Multiply | TokenKind.Divide:
 					return 2
-				case TokenKind.Multiply | TokenKind.Divide | TokenKind.Plus | TokenKind.Minus:
+				case TokenKind.Plus | TokenKind.Minus:
 					return 1
 				case _:
 					return 0

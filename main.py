@@ -45,12 +45,16 @@ def colorfy(text: str):
 			case _: print(indent * ' ', t, ' ', end='', sep='')
 
 def main():
-	# colorfy("if h1 == 12 { 'Hello!' * 2 } elsif a == 6 {} elsif b == 2 {} else {}\0")
-	l = Lexer("if h1 == 12 { echo 'Hello!' } elsif a == 6 {} elif b == 2 {}\0")
-	p = Parser(l)
-	n = p.parse()
+	while True:
+		text = input('> ')
+		if text == '': break
 
-	print(n)
+		# colorfy("if h1 == 12 { 'Hello!' * 2 } elsif a == 6 {} elsif b == 2 {} else {}\0")
+		l = Lexer(text + '\0')
+		p = Parser(l)
+		n = p.parse()
+
+		print(n)
 
 if __name__ == '__main__':
 	main()
