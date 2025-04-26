@@ -28,7 +28,7 @@ class UnaryNode:
 	op: Token
 
 	def __repr__(self):
-		return f'{self.op} {self.expr}'
+		return f'({self.op}{self.expr})'
 
 @dataclass
 class IfNode:

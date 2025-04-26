@@ -95,13 +95,13 @@ class Parser:
 
 		def get_precedence(kind: TokenKind) -> int:
 			match kind:
-				case TokenKind.LogicAnd | TokenKind.LogicOr:
-					return 4
-				case TokenKind.Equal | TokenKind.Diff | TokenKind.Less | TokenKind.LessEqual | TokenKind.Greater | TokenKind.GreaterEquals:
-					return 3
 				case TokenKind.Multiply | TokenKind.Divide:
-					return 2
+					return 4
 				case TokenKind.Plus | TokenKind.Minus:
+					return 3
+				case TokenKind.Equal | TokenKind.Diff | TokenKind.Less | TokenKind.LessEqual | TokenKind.Greater | TokenKind.GreaterEquals:
+					return 2
+				case TokenKind.LogicAnd | TokenKind.LogicOr:
 					return 1
 				case _:
 					return 0
@@ -127,7 +127,7 @@ class Parser:
 		if self.current.kind == TokenKind.Minus:
 			op = self.current
 			self.next()
-			expr = self.factor()
+			expr = self.unary()
 			if not expr: return
 			return UnaryNode(expr, op)
 		else:
