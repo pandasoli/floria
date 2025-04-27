@@ -1,4 +1,5 @@
 import sys
+from typing import Callable, Dict
 from lexer import Lexer
 from token_ import Token, TokenKind
 from node import BinaryNode, CompoundNode, IfNode, Node, UnaryNode
@@ -6,10 +7,61 @@ from node import BinaryNode, CompoundNode, IfNode, Node, UnaryNode
 class Parser:
 	lexer: Lexer
 	current: Token|None
+	PRECEDENCE: Dict[TokenKind, int]
+	prefix_parselets: Dict[TokenKind, Callable[[], Node|None]]
+	infix_parselets: Dict[TokenKind, Callable]
 
 	def __init__(self, lexer: Lexer):
 		self.current = None
 		self.lexer = lexer
+
+		self.PRECEDENCE = {
+			TokenKind.LogicOr: 1,
+			TokenKind.LogicAnd: 2,
+			TokenKind.Equal: 3,
+			TokenKind.Diff: 3,
+			TokenKind.Less: 4,
+			TokenKind.LessEqual: 4,
+			TokenKind.Greater: 4,
+			TokenKind.GreaterEquals: 4,
+			TokenKind.Plus: 5,
+			TokenKind.Minus: 5,
+			TokenKind.Multiply: 6,
+			TokenKind.Divide: 6,
+			TokenKind.Mod: 6,
+			TokenKind.Pow: 7
+		}
+
+		self.prefix_parselets = {
+			TokenKind.Ident: self.parse_identifier,
+			TokenKind.Integer: self.parse_literal,
+			TokenKind.Float: self.parse_literal,
+			TokenKind.String: self.parse_literal,
+			TokenKind.Char: self.parse_literal,
+			TokenKind.Minus: self.parse_prefix,
+			TokenKind.Plus: self.parse_prefix,
+			TokenKind.OpenParen: self.parse_group,
+			TokenKind.If: self.parse_if,
+			TokenKind.OpenBrace: self.parse_compound
+		}
+
+		self.infix_parselets = {
+			TokenKind.Plus: self.parse_binary,
+			TokenKind.Minus: self.parse_binary,
+			TokenKind.Multiply: self.parse_binary,
+			TokenKind.Divide: self.parse_binary,
+			TokenKind.Mod: self.parse_binary,
+			TokenKind.Pow: self.parse_binary,
+			TokenKind.Equal: self.parse_binary,
+			TokenKind.Diff: self.parse_binary,
+			TokenKind.Less: self.parse_binary,
+			TokenKind.LessEqual: self.parse_binary,
+			TokenKind.Greater: self.parse_binary,
+			TokenKind.GreaterEquals: self.parse_binary,
+			TokenKind.LogicAnd: self.parse_binary,
+			TokenKind.LogicOr: self.parse_binary,
+			TokenKind.Assign: self.parse_binary
+		}
 
 	def next(self) -> Token|None:
 		self.current = self.lexer.lex()
@@ -17,144 +69,100 @@ class Parser:
 
 	def parse(self) -> Node|None:
 		self.next()
-		if not self.current: return
+		return self.expr()
 
-		node = CompoundNode([])
+	def expr(self, precedence: int = 0) -> Node|None:
+		token = self.current
+		if not token: return
 
-		while self.current.kind != TokenKind.EOI:
-			expr = self.stmt()
-			if not expr: return
-			node.body.append(expr)
+		prefix_parselet = self.prefix_parselets.get(token.kind)
+		if not prefix_parselet:
+			print(f'Unexpected token {token.kind}', file=sys.stderr)
+			exit(1)
 
-		return node
+		left = prefix_parselet()
 
-	def compound(self) -> Node|None:
-		if not self.current: return
+		while self.current and precedence < self.PRECEDENCE.get(self.current.kind, 0):
+			token = self.current
+			infix_parselet = self.infix_parselets.get(token.kind)
 
-		if self.current.kind != TokenKind.OpenBrace:
-			print(f'Expected opening brace at {self.current.start}', file=sys.stderr)
-			return
-
-		self.next()
-		node = CompoundNode([])
-
-		while self.current and self.current.kind not in (TokenKind.EOI, TokenKind.CloseBrace):
-			expr = self.stmt()
-			if not expr: return
-			node.body.append(expr)
-
-		if self.current.kind != TokenKind.CloseBrace:
-			print(f'Expected closing brace at {self.current.start}', file=sys.stderr)
-			return
-
-		self.next()
-		return node
-
-	def stmt(self) -> Node|None:
-		if not self.current: return
-
-		if self.current.kind == TokenKind.If:
-			self.next()
-
-			cmp = self.binary()
-			if not cmp: return
-
-			body = self.compound()
-			if not body: return
-
-			node = IfNode(cmp, body, None)
-			last_node = node
-
-			while self.current.kind == TokenKind.Elsif:
-				self.next()
-
-				cmp = self.binary()
-				if not cmp: return
-
-				body = self.compound()
-				if not body: return
-
-				last_node.else_ = IfNode(cmp, body, None)
-				last_node = last_node.else_
-
-			if self.current.kind == TokenKind.Else:
-				self.next()
-				body = self.compound()
-				if not body: return
-				last_node.else_ = body
-
-			return node
-		elif self.current.kind in (TokenKind.Elsif, TokenKind.Else):
-			print(f'Unexpected {self.current.kind} at {self.current.start}', file=sys.stderr)
-		else:
-			return self.binary()
-
-	def binary(self, parentPrecedence = 0) -> Node|None:
-		lhs = self.unary()
-		if not lhs: return
-
-		def get_precedence(kind: TokenKind) -> int:
-			match kind:
-				case TokenKind.Multiply | TokenKind.Divide:
-					return 4
-				case TokenKind.Plus | TokenKind.Minus:
-					return 3
-				case TokenKind.Equal | TokenKind.Diff | TokenKind.Less | TokenKind.LessEqual | TokenKind.Greater | TokenKind.GreaterEquals:
-					return 2
-				case TokenKind.LogicAnd | TokenKind.LogicOr:
-					return 1
-				case _:
-					return 0
-
-		while self.current:
-			precedence = get_precedence(self.current.kind)
-			if precedence == 0 or precedence <= parentPrecedence:
+			if infix_parselet is None:
 				break
 
-			op = self.current
-			self.next()
+			left = infix_parselet(left)
 
-			rhs = self.binary(precedence)
-			if not rhs: return
+		return left
 
-			lhs = BinaryNode(lhs, op, rhs)
+	def parse_identifier(self) -> Node|None:
+		token = self.current
+		if not token: return
+		self.next()
+		return token
 
-		return lhs
+	def parse_literal(self) -> Node|None:
+		token = self.current
+		if not token: return
+		self.next()
+		return token
 
-	def unary(self) -> Node|None:
-		if not self.current: return
+	def parse_prefix(self) -> Node|None:
+		token = self.current
+		if not token: return
+		self.next()
+		expr = self.expr(self.PRECEDENCE.get(token.kind, 0))
+		if not expr: return
+		return UnaryNode(expr, token)
 
-		if self.current.kind == TokenKind.Minus:
-			op = self.current
-			self.next()
-			expr = self.unary()
-			if not expr: return
-			return UnaryNode(expr, op)
-		else:
-			return self.factor()
+	def parse_group(self) -> Node|None:
+		self.next()
+		expr = self.expr()
+		if self.current != TokenKind.CloseParen:
+			print(f'Expected {TokenKind.CloseParen}, not {self.current}', file=sys.stderr)
+			exit(1)
+		self.next()
+		return expr
 
-	def factor(self) -> Node|None:
-		if not self.current: return
+	def parse_binary(self, left: Node) -> Node|None:
+		token = self.current
+		if not token: return
+		self.next()
+		precedence = self.PRECEDENCE.get(token.kind, 0)
 
-		match self.current.kind:
-			case TokenKind.Ident | TokenKind.Integer | TokenKind.Float | TokenKind.String | TokenKind.Char:
-				token = self.current
+		if token.kind == TokenKind.Pow:
+			precedence -= 1
+
+		right = self.expr(precedence)
+		if not right: return
+		return BinaryNode(left, token, right)
+
+	def parse_if(self) -> Node|None:
+		self.next()
+		cmp = self.expr()
+		if not cmp: return
+
+		body = self.parse_compound()
+		if not body: return
+
+		else_ = None
+		if self.current:
+			if self.current.kind == TokenKind.Elsif:
+				else_ = self.parse_if()
+			elif self.current.kind == TokenKind.Else:
 				self.next()
-				return token
+				else_ = self.expr()
 
-			case TokenKind.OpenParen:
-				self.next()
-				expr = self.binary()
+		return IfNode(cmp, body, else_)
 
-				if self.current.kind != TokenKind.CloseParen:
-					print(f'Expected closing parenthesis at {self.current.start}', file=sys.stderr)
-					return
+	def parse_compound(self) -> Node|None:
+		self.next()
+		statements = []
 
-				self.next()
-				return expr
+		while self.current and self.current.kind != TokenKind.CloseBrace:
+			statements.append(self.expr())
 
-			case TokenKind.OpenBrace:
-				return self.compound()
+		if not self.current or self.current.kind != TokenKind.CloseBrace:
+			print(f'Expected {TokenKind.CloseBrace}, not {self.current}', file=sys.stderr)
+			exit(1)
 
-			case _:
-				print(f'Unexpected token {self.current} in factor consumer', file=sys.stderr)
+		self.next()
+		return CompoundNode(statements)
