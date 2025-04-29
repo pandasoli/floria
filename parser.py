@@ -33,7 +33,7 @@ class Parser:
 		}
 
 		self.prefix_parselets = {
-			TokenKind.Ident: self.parse_identifier,
+			TokenKind.Ident: self.parse_literal,
 			TokenKind.Integer: self.parse_literal,
 			TokenKind.Float: self.parse_literal,
 			TokenKind.String: self.parse_literal,
@@ -97,12 +97,6 @@ class Parser:
 			left = infix_parselet(left)
 
 		return left
-
-	def parse_identifier(self) -> Node|None:
-		token = self.current
-		if not token: return
-		self.next()
-		return token
 
 	def parse_literal(self) -> Node|None:
 		token = self.current
