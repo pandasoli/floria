@@ -69,9 +69,14 @@ class Parser:
 
 	def parse(self) -> Node|None:
 		self.next()
-		return self.expr()
+		body = []
 
-	def expr(self, precedence: int = 0) -> Node|None:
+		while self.current and self.current.kind not in (TokenKind.CloseBrace, TokenKind.EOI):
+			body.append(self.parse_expr())
+
+		return CompoundNode(body)
+
+	def parse_expr(self, precedence: int = 0) -> Node|None:
 		token = self.current
 		if not token: return
 
@@ -109,13 +114,13 @@ class Parser:
 		token = self.current
 		if not token: return
 		self.next()
-		expr = self.expr(self.PRECEDENCE.get(token.kind, 0))
+		expr = self.parse_expr(self.PRECEDENCE.get(token.kind, 0))
 		if not expr: return
 		return UnaryNode(expr, token)
 
 	def parse_group(self) -> Node|None:
 		self.next()
-		expr = self.expr()
+		expr = self.parse_expr()
 		if self.current != TokenKind.CloseParen:
 			print(f'Expected {TokenKind.CloseParen}, not {self.current}', file=sys.stderr)
 			exit(1)
@@ -131,13 +136,13 @@ class Parser:
 		if token.kind == TokenKind.Pow:
 			precedence -= 1
 
-		right = self.expr(precedence)
+		right = self.parse_expr(precedence)
 		if not right: return
 		return BinaryNode(left, token, right)
 
 	def parse_if(self) -> Node|None:
 		self.next()
-		cmp = self.expr()
+		cmp = self.parse_expr()
 		if not cmp: return
 
 		body = self.parse_compound()
@@ -149,20 +154,20 @@ class Parser:
 				else_ = self.parse_if()
 			elif self.current.kind == TokenKind.Else:
 				self.next()
-				else_ = self.expr()
+				else_ = self.parse_expr()
 
 		return IfNode(cmp, body, else_)
 
 	def parse_compound(self) -> Node|None:
 		self.next()
-		statements = []
+		body = []
 
 		while self.current and self.current.kind != TokenKind.CloseBrace:
-			statements.append(self.expr())
+			body.append(self.parse_expr())
 
 		if not self.current or self.current.kind != TokenKind.CloseBrace:
 			print(f'Expected {TokenKind.CloseBrace}, not {self.current}', file=sys.stderr)
 			exit(1)
 
 		self.next()
-		return CompoundNode(statements)
+		return CompoundNode(body)
