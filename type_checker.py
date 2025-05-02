@@ -132,7 +132,7 @@ def is_type_compatible(a: Type, b: Type) -> bool:
 	return merge_types(a, b) != None
 
 # returns the merged type, which is the type out of the two that can represent both.
-# (Int, Float) -> Float, because every Int value can be represented by a Float.
+# ex.: (Int, Float) -> Float, because every Int value can be represented by a Float.
 def merge_types(a: Type, b: Type) -> Type|None:
 	# equal types return themselves
 	if a == b:

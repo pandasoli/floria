@@ -50,7 +50,6 @@ def main():
 		text = input('> ')
 		if text == '': break
 
-		# colorfy("if h1 == 12 { 'Hello!' * 2 } elsif a == 6 {} elsif b == 2 {} else {}\0")
 		l = Lexer(text + '\0')
 		p = Parser(l)
 		n = p.parse()
