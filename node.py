@@ -13,8 +13,7 @@ Node = Union[
 	'BinaryNode', 'UnaryNode',
 
 	# Comparison
-	'IfNode',
-
+	'IfNode'
 ]
 
 @dataclass
