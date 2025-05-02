@@ -39,6 +39,9 @@ class TokenKind(Enum):
 	# Statements
 	If, Elsif, Else = auto(), auto(), auto()
 
+	# Constants
+	True_, False_ = auto(), auto()
+
 Keywords = (
 	# Logical Operators
 	(TokenKind.LogicAnd, 'and'),
@@ -47,7 +50,11 @@ Keywords = (
 	# Statements
 	(TokenKind.If, 'if'),
 	(TokenKind.Elsif, 'elsif'),
-	(TokenKind.Else, 'else')
+	(TokenKind.Else, 'else'),
+
+	# Constants
+	(TokenKind.True_, 'true'),
+	(TokenKind.False_, 'false'),
 )
 
 @dataclass

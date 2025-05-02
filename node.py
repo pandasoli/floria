@@ -3,15 +3,26 @@ from typing import Union
 from token_ import Token
 
 Node = Union[
-	Token, # Literal
+	# Literal
+	'LiteralNode',
+
+	# Compound
 	'CompoundNode',
 
 	# Operations
 	'BinaryNode', 'UnaryNode',
 
 	# Comparison
-	'IfNode'
+	'IfNode',
+
 ]
+
+@dataclass
+class LiteralNode:
+	token: Token
+
+	def __repr__(self):
+		return f'{self.token}'
 
 @dataclass
 class BinaryNode:

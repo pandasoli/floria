@@ -2,7 +2,7 @@ import sys
 from typing import Callable, Dict
 from lexer import Lexer
 from token_ import Token, TokenKind
-from node import BinaryNode, CompoundNode, IfNode, Node, UnaryNode
+from node import BinaryNode, CompoundNode, IfNode, LiteralNode, Node, UnaryNode
 
 class Parser:
 	lexer: Lexer
@@ -38,6 +38,8 @@ class Parser:
 			TokenKind.Float: self.parse_literal,
 			TokenKind.String: self.parse_literal,
 			TokenKind.Char: self.parse_literal,
+			TokenKind.True_: self.parse_literal,
+			TokenKind.False_: self.parse_literal,
 			TokenKind.Minus: self.parse_prefix,
 			TokenKind.Plus: self.parse_prefix,
 			TokenKind.OpenParen: self.parse_group,
@@ -102,7 +104,7 @@ class Parser:
 		token = self.current
 		if not token: return
 		self.next()
-		return token
+		return LiteralNode(token)
 
 	def parse_prefix(self) -> Node|None:
 		token = self.current

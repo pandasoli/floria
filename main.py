@@ -1,6 +1,7 @@
 from lexer import Lexer
 from token_ import TokenKind
 from parser import Parser
+from type_checker import check_type
 
 def colorfy(text: str):
 	l = Lexer(text)
@@ -53,8 +54,10 @@ def main():
 		l = Lexer(text + '\0')
 		p = Parser(l)
 		n = p.parse()
+		t = check_type(n)
 
 		print(n)
+		print(t)
 
 if __name__ == '__main__':
 	main()
