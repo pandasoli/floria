@@ -38,8 +38,6 @@ class Parser:
 			TokenKind.Float: self.parse_literal,
 			TokenKind.String: self.parse_literal,
 			TokenKind.Char: self.parse_literal,
-			TokenKind.True_: self.parse_literal,
-			TokenKind.False_: self.parse_literal,
 			TokenKind.Minus: self.parse_prefix,
 			TokenKind.Plus: self.parse_prefix,
 			TokenKind.OpenParen: self.parse_group,
