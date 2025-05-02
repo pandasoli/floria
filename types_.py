@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-# this is for primitives, for compound types you should use a union instead.
+# This is for primitives, for compound types use a union instead.
 class Type(Enum):
 	Int = auto()
 	Float = auto()
@@ -8,4 +8,3 @@ class Type(Enum):
 	String = auto()
 	Bool = auto()
 	Void = auto()
-
